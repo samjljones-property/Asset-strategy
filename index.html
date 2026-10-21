@@ -70,6 +70,7 @@ function unitYieldModel(id){if(!state.tenancies.length||!state.options[id])retur
 function loadUnitYields(){const id=document.getElementById('unit-scenario')?.value,i=document.getElementById('unit-target')?.value;if(!id||i==='')return;const y=state.unitYields?.[id]?.[i]||{};for(const [k,v] of Object.entries({'unit-base-yield':y.baseYield??state.options[id]?.exitYield??'','unit-yield-adjust':y.amAdjustment??0,'unit-global-shift':state.marketShifts?.[id]??0,'unit-yield-rationale':y.rationale||''})){const el=document.getElementById(k);if(el)el.value=v}}
 function saveUnitYields(){const id=document.getElementById('unit-scenario').value,i=document.getElementById('unit-target').value;if(!state.options[id]||!state.tenancies[Number(i)])return;const val=k=>Number(document.getElementById(k).value),baseYield=val('unit-base-yield'),amAdjustment=val('unit-yield-adjust'),globalShift=val('unit-global-shift');if(![baseYield,amAdjustment,globalShift].every(Number.isFinite)||baseYield<=0||baseYield+amAdjustment<=0||baseYield+amAdjustment+globalShift<=0){alert('All capitalisation yields must remain positive');return}state.unitYields=state.unitYields||{};state.unitYields[id]=state.unitYields[id]||{};state.unitYields[id][i]={baseYield,amAdjustment,rationale:document.getElementById('unit-yield-rationale').value};state.marketShifts=state.marketShifts||{};state.marketShifts[id]=globalShift;persist();render();loadUnitYields()}
 function renderUnitWorkspace(){
+ loadUnitYields();
  const a=document.getElementById('unit-scenario'),b=document.getElementById('unit-target');if(!a||!b)return;
  const t=state.tenancies[Number(b.value)]||{},raw=state.interventions?.[a.value]?.[b.value],events=Array.isArray(raw)?raw:raw?[raw]:[];
  const moneyText=n=>asMoney(Number(n)||0);
@@ -108,7 +109,7 @@ function renderUnitInterventions(){
   ev.forEach((x,i)=>pick.add(new Option((i+1)+'. '+(x.action||'Event')+' — '+(x.eventDate||x.date||'derived date'),String(i))));
   pick.value=wanted!==undefined&&wanted!=='new'&&Number(wanted)<ev.length?String(wanted):'new';load()
  }
- a.onchange=()=>refreshPick('new');b.onchange=()=>refreshPick('new');pick.onchange=load;
+ a.onchange=()=>{refreshPick('new');loadUnitYields()};b.onchange=()=>{refreshPick('new');loadUnitYields()};pick.onchange=load;
  for(const k of ['action','event','event-date','refurb','void','overlap','free','override'])document.getElementById('unit-'+k).onchange=calculate;
  refreshPick(oldPick);
 }
