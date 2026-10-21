@@ -18,3 +18,16 @@ assert.equal(broken.rent[6],0);assert.equal(broken.rent[12],15000);
 const app=assetCashflow({tenancies:[t],interventions:{0:[{action:'relet',refurb:3,void:6,free:6,term:120,rent:240000,cost:20000}]},start,months:36,assetValue:2000000,exitYield:6});
 assert.equal(app.metrics.interventionCosts,20000);assert.equal(app.metrics.exitRent,240000);
 console.log('Lease-engine tests passed');
+
+const successive=leaseEvents(t,[{action:'review',eventDate:'2027-07-01',rent:144000},{action:'relet',refurb:0,void:3,free:2,term:24,rent:180000,cost:12000}],start,48);
+assert.equal(successive.rent[6],12000);
+assert.equal(successive.rent[12],0);
+assert.equal(successive.rent[17],15000);
+assert.equal(successive.rent[39],0);
+assert.equal(successive.cost[12],12000);
+const vacant={unit:'B',occupier:'Vacant',rent:0,erv:100000};
+const letting=leaseEvents(vacant,[{action:'relet',refurb:0,void:2,free:1,term:12,rent:120000}],start,24);
+assert.equal(letting.rent[0],0);
+assert.equal(letting.rent[3],10000);
+assert.equal(letting.rent[14],0);
+console.log('Additional lease sequencing tests passed');
