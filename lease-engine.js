@@ -62,6 +62,39 @@ function assetCashflow({tenancies,interventions={},scenario,start,months,operati
 /* Explicit unit-level capitalisation assumptions. A yield shift is expressed in
    percentage points, not a multiplier. This is a simple income-capitalisation
    valuation, not a term-and-reversion valuation. */
+/* Monthly term-and-reversion DCF at the unit's capitalisation yield.
+   ERV is a current annual market-rent assumption, with explicit reletting
+   downtime, incentives and costs. No speculative rental growth is assumed. */
+function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,voidMonths=6,rentFreeMonths=6,relettingCost=0,valuationYears=30}){
+ const n=num(exitMonths,'exit months'),years=num(valuationYears,'valuation years');
+ if(!Number.isInteger(n)||!Number.isInteger(years)||years<1||years>50)throw Error('Invalid valuation horizon');
+ const rate=Number(capRate)/100;if(!Number.isFinite(rate)||rate<=0||rate>=1)throw Error('Invalid valuation yield');
+ const marketRent=num(erv??tenancy.erv,'ERV'),voidPeriod=num(voidMonths,'reletting void'),free=num(rentFreeMonths,'reletting rent free'),cost=num(relettingCost,'reletting costs');
+ if(!Number.isInteger(voidPeriod)||!Number.isInteger(free))throw Error('Void and rent-free months must be integers');
+ const length=n+years*12+1,actual=leaseEvents(tenancy,events,start,length),first=month(start);
+ const security=leaseSecurity(tenancy,events,iso(first+n));
+ const end=security.expiry?month(security.expiry):first+n+years*12;
+ const breakAt=security.breakDate?month(security.breakDate):Infinity;
+ const rollover=Math.min(end,breakAt)+1;
+ const discount=Math.pow(1+rate,1/12)-1;
+ let pv=0,termValue=0,reversionValue=0,landlordCosts=0;
+ for(let k=0;k<years*12;k++){
+  const idx=n+k,m=first+idx,monthsFromRollover=m-rollover;
+  const withinLease=m<rollover&&actual.vacant[idx]===0;
+  let monthly=0;
+  if(withinLease)monthly=actual.rent[idx];
+  else if(monthsFromRollover>=0){
+   if(monthsFromRollover===voidPeriod){monthly-=cost;landlordCosts+=cost/Math.pow(1+discount,k+1)}
+   if(monthsFromRollover>=voidPeriod+free)monthly+=marketRent/12;
+  }
+  const present=monthly/Math.pow(1+discount,k+1);pv+=present;
+  if(withinLease)termValue+=present;else reversionValue+=present;
+ }
+ /* Terminal perpetuity at the end of the explicit projection, assuming
+    stabilised ERV and no further void or capital costs. */
+ const terminal=marketRent/12/discount/Math.pow(1+discount,years*12);
+ return {value:pv+terminal,termValue,reversionValue,terminalValue:terminal,landlordCosts,rolloverMonth:iso(rollover),securedMonths:security.securedMonths,method:'Monthly term and reversion DCF',assumptions:{erv:marketRent,voidMonths:voidPeriod,rentFreeMonths:free,relettingCost:cost,valuationYears:years,capRate}};
+}
 function unitValuations({tenancies,interventions={},start,exitMonths,unitYields={},globalShift=0,defaultYield}){
  const n=num(exitMonths,'exit months');
  if(!Number.isInteger(n)||n<1||n>600)throw Error('Invalid exit months');
@@ -99,5 +132,5 @@ function leaseSecurity(tenancy,events=[],asOf){
  const securedTo=breakDate!==null&&contractualExpiry!==null?Math.min(breakDate,contractualExpiry):breakDate??contractualExpiry;
  return {expiry:contractualExpiry===null?null:iso(contractualExpiry),breakDate:breakDate===null?null:iso(breakDate),securedMonths:securedTo===null?null:Math.max(0,securedTo-date+1)};
 }
-const api={leaseEvents,assetCashflow,unitValuations,leaseSecurity};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
+const api={leaseEvents,assetCashflow,unitValuations,leaseSecurity,termReversionValue};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
