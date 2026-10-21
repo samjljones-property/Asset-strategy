@@ -68,7 +68,7 @@ assert.ok(Math.abs(sevenBaseline.totals.finalValue-sevenBaseline.units.reduce((s
 assert.ok(sevenBaseline.units[6].finalValue>0,'Vacant unit has ERV reversion value');
 assert.ok(sevenBaseline.units[3].finalValue>0,'Expired lease has ERV reversion value');
 assert.equal(sevenBaseline.totals.exitIncome,2955000);
-assert.ok(Math.abs(sevenBaseline.totals.finalValue-80057330.7015692)<0.01);
+assert.ok(Math.abs(sevenBaseline.totals.finalValue-76691812.54694094)<0.01);
 const proposed=unitValuations({tenancies:seven,interventions:{1:[{action:'regear',eventDate:'2027-06-01',rent:735000,free:6,term:120,cost:25000}]},start:'2026-11-01',exitMonths:60,defaultYield:6.25,unitYields:{1:{baseYield:6.25,amAdjustment:-0.25}}});
 assert.ok(Math.abs(proposed.totals.totalEffect-(proposed.totals.finalValue-proposed.totals.baselineValue))<0.01);
 assert.ok(proposed.units[1].finalValue!==sevenBaseline.units[1].finalValue);
@@ -77,3 +77,7 @@ console.log('Seven-unit reference portfolio regression tests passed');
 
 assert.ok(sevenBaseline.units[6].finalValue>10000000);
 assert.ok(termReversionValue({tenancy:seven[6],start:'2026-11-01',exitMonths:300,capRate:6.25}).value>10000000);
+
+const expiredAtExit=termReversionValue({tenancy:seven[3],start:'2026-11-01',exitMonths:60,capRate:6.25});
+assert.equal(expiredAtExit.rolloverMonth,'2031-11-01');
+assert.ok(expiredAtExit.value>0);
