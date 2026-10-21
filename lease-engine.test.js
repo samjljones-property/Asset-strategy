@@ -50,3 +50,27 @@ assert.equal(unitModel.units[0].exitYield,5.75);
 assert.ok(Math.abs(unitModel.totals.incomeEffect+unitModel.totals.amYieldEffect+unitModel.totals.marketEffect-unitModel.totals.totalEffect)<0.01);
 assert.throws(()=>unitValuations({tenancies:[secured],start:'2027-01-01',exitMonths:12,defaultYield:0}));
 console.log('Lease security and unit valuation regression tests passed');
+
+const seven=[
+ ['Ground Floor','Harbour Coffee Ltd',286000,338000,'2033-05-31','2028-05-31'],
+ ['First Floor','Northbridge Consulting LLP',672000,784000,'2032-12-31','2027-12-31'],
+ ['Second Floor','Meridian Technology Ltd',702000,810000,'2034-03-31','2029-03-31'],
+ ['Third Floor','Westfield Legal Partners',682500,787500,'2031-08-31',null],
+ ['Fourth Floor','Atlas Design Studio Ltd',588000,735000,'2035-12-31','2030-12-31'],
+ ['Fifth Floor','Orchard Capital Advisors Ltd',707000,808000,'2038-09-30','2028-09-30'],
+ ['Sixth Floor','Vacant',0,690000,null,null]
+].map((r,i)=>({id:String(i),unit:r[0],occupier:r[1],rent:r[2],erv:r[3],expiry:r[4],breakDate:r[5]}));
+assert.equal(seven.reduce((sum,x)=>sum+x.rent,0),3637500);
+assert.equal(seven.reduce((sum,x)=>sum+x.erv,0),4952500);
+const sevenBaseline=unitValuations({tenancies:seven,start:'2026-11-01',exitMonths:60,defaultYield:6.25});
+assert.equal(sevenBaseline.units.length,7);
+assert.ok(Math.abs(sevenBaseline.totals.finalValue-sevenBaseline.units.reduce((sum,x)=>sum+x.finalValue,0))<0.01);
+assert.ok(sevenBaseline.units[6].finalValue>0,'Vacant unit has ERV reversion value');
+assert.ok(sevenBaseline.units[3].finalValue>0,'Expired lease has ERV reversion value');
+assert.equal(sevenBaseline.totals.exitIncome,2955000);
+assert.ok(Math.abs(sevenBaseline.totals.finalValue-71214119.00584266)<0.01);
+const proposed=unitValuations({tenancies:seven,interventions:{1:[{action:'regear',eventDate:'2027-06-01',rent:735000,free:6,term:120,cost:25000}]},start:'2026-11-01',exitMonths:60,defaultYield:6.25,unitYields:{1:{baseYield:6.25,amAdjustment:-0.25}}});
+assert.ok(Math.abs(proposed.totals.totalEffect-(proposed.totals.finalValue-proposed.totals.baselineValue))<0.01);
+assert.ok(proposed.units[1].finalValue!==sevenBaseline.units[1].finalValue);
+assert.equal(proposed.units[0].finalValue,sevenBaseline.units[0].finalValue);
+console.log('Seven-unit reference portfolio regression tests passed');
