@@ -17,6 +17,10 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
    await page.locator('.tab[data-tab="'+tab+'"]').click();
    assert.ok(await page.locator('#'+tab).evaluate(el=>el.classList.contains('active')),'Navigation failed: '+tab);
   }
+  await page.locator('.tab[data-tab="dashboard"]').click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#loaddemo').click();
+  await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="tenancies"]').click();
