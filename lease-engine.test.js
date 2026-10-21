@@ -114,3 +114,29 @@ assert.equal(valuationLet.rolloverMonth,'2037-04-01');
 const valuationFuture=termReversionValue({tenancy:newLettingUnit,events:[{action:'relet',eventDate:'2030-01-01',void:3,free:6,term:120,rent:240000}],start:'2027-01-01',exitMonths:12,capRate:6});
 assert.equal(valuationFuture.value,valuationBase.value,'Uncommitted future intervention must not affect current exit valuation');
 console.log('New letting exit valuation tests passed');
+
+
+/* End-to-end seven-unit investment committee comparison.
+   All scenarios share the same hold period, initial value and market yield. */
+const portfolioCases={
+ contractual:{},
+ security:{1:[{action:'regear',eventDate:'2027-06-01',rent:735000,term:120,free:3,cost:35000}],4:[{action:'removeBreak',eventDate:'2027-04-01'}]},
+ active:{3:[{action:'relet',eventDate:'2031-09-01',refurb:2,void:4,free:6,term:120,rent:787500,cost:120000}],6:[{action:'relet',eventDate:'2026-11-01',refurb:3,void:6,free:9,term:120,rent:690000,cost:350000}]}
+};
+const portfolioResults={};
+for(const [name,interventions] of Object.entries(portfolioCases)){
+ const flows=assetCashflow({tenancies:seven,interventions,start:'2026-11-01',months:60,assetValue:70000000,exitYield:6.25,saleFee:1,saleLegal:30000});
+ const valuation=unitValuations({tenancies:seven,interventions,start:'2026-11-01',exitMonths:60,defaultYield:6.25});
+ const terminal=flows.rows[60],netExit=valuation.totals.finalValue*0.99-30000;
+ terminal.net+=netExit-terminal.exit;terminal.exit=netExit;
+ const discounted=flows.rows.reduce((sum,row,i)=>sum+row.net/Math.pow(1.08,i/12),0);
+ assert.ok(Number.isFinite(discounted));
+ assert.ok(Math.abs(valuation.totals.finalValue-valuation.units.reduce((sum,u)=>sum+u.finalValue,0))<0.01);
+ assert.ok(Math.abs(terminal.net-(terminal.rent-terminal.cost+terminal.exit))<0.01);
+ portfolioResults[name]={npv:discounted,rent:flows.metrics.totalRent,exit:valuation.totals.finalValue};
+}
+assert.ok(portfolioResults.active.rent>portfolioResults.contractual.rent);
+assert.ok(portfolioResults.security.rent>portfolioResults.contractual.rent);
+assert.ok(portfolioResults.active.npv>portfolioResults.contractual.npv);
+assert.ok(portfolioResults.security.npv>portfolioResults.contractual.npv);
+console.log('Seven-unit end-to-end financial comparisons passed');
