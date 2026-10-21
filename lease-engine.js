@@ -48,7 +48,7 @@ function leaseEvents(tenancy,events=[],start,horizon){
   if(kind!=='review'){currentExpiry=kind==='surrender'?eventStart-1:leaseStart+term-1;currentCommencement=leaseStart;currentBreak=e.newBreakDate?month(e.newBreakDate):null;}
   const chargeMonth=kind==='review'?leaseStart:eventStart;
   if(chargeMonth>=first&&chargeMonth<first+length)cost[chargeMonth-first]+=fee;
-  eventLog.push({action:kind,eventMonth:iso(base),leaseCommencement:iso(leaseStart),rentCommencement:iso(leaseStart+free),cost:fee});
+  eventLog.push({action:kind,eventMonth:iso(base),leaseCommencement:iso(leaseStart),rentCommencement:iso(leaseStart+free),termMonths:term,cost:fee});
  }
  return {rent,cost,vacant,incentive,eventLog};
 }
@@ -80,8 +80,7 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
  const security=leaseSecurity(tenancy,committed,iso(exitMonth));
  const leases=actual.eventLog.filter(e=>!['review','removeBreak'].includes(e.action));
  const latest=leases.length?leases[leases.length-1]:null;
- const latestEvent=committed.filter(e=>!['hold','review','removeBreak'].includes(e.action)).at(-1);
- const plannedExpiry=latest&&latestEvent?month(latest.leaseCommencement)+num(latestEvent.term??120,'lease term')-1:null;
+ const plannedExpiry=latest?month(latest.leaseCommencement)+num(latest.termMonths,'lease term')-1:null;
  const end=plannedExpiry!==null?plannedExpiry:security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
  const breakAt=security.breakDate?month(security.breakDate):Infinity;
  const rollover=Math.max(exitMonth,Math.min(end,breakAt)+1);
