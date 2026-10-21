@@ -24,6 +24,14 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#loaddemo').evaluate(el=>el.click());
   await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
+  const three=await page.evaluate(()=>{const ids=Object.keys(state.options),data=ids.map(id=>{const c=calc(id),model=engineModel(id);return {id,name:state.options[id].name,irr:c.irr,npv:c.npv,exit:c.gross,monthly:c.flows.length,terminal:c.flows.at(-1).exit,actions:Object.values(state.interventions[id]||{}).flat().length,engineExit:model.rows.at(-1).exit}});return {tenancies:state.tenancies.length,ids,data}});
+  assert.equal(three.tenancies,7,'Demo must contain seven tenancies');
+  assert.equal(three.data.length,3,'Demo must provide three independently comparable strategies');
+  assert.ok(three.data.every(x=>x.monthly===61),'Every 60-month scenario must produce opening plus 60 monthly cash flows');
+  assert.ok(three.data.every(x=>Number.isFinite(x.npv)&&Number.isFinite(x.exit)),'All demonstration scenarios must return finite valuations');
+  assert.ok(three.data.every(x=>Math.abs(x.terminal-x.engineExit)<0.01),'Scenario cash flows must match engine terminal values');
+  assert.ok(three.data.some(x=>x.actions>0),'Demonstration must include asset-management interventions');
+  assert.ok(new Set(three.data.map(x=>Math.round(x.npv))).size>1,'Independent strategies must produce distinguishable appraisals');
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="options"]').click();
