@@ -35,6 +35,9 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.equal(await page.locator('#unit-base-yield').inputValue(),'6.25');
   await page.locator('.tab[data-tab="overview"]').click();
   assert.ok((await page.locator('#ic-summary').innerText()).includes('Unit business plan'),'Unit-level committee plan missing');
+  const reportDownload=page.waitForEvent('download');
+  await page.locator('#ic-export').click();
+  assert.ok((await reportDownload).suggestedFilename().endsWith('.html'),'Committee report did not download');
   assert.deepEqual(errors,[],'Browser JavaScript errors');
   console.log('Browser smoke tests passed: startup, navigation, tenancy, yield controls');
  }finally{await browser.close();server.close()}
