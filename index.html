@@ -119,7 +119,7 @@ function saveUnitIntervention(clear=false){
   if(index>=0)events[index]=x;else events.push(x);
  }
  if(events.length)state.interventions[id][i]=events;else delete state.interventions[id][i];
- persist();render();renderUnitInterventions();
+ persist();pick.value=String(index>=0&&!clear?index:events.length-1);render();renderUnitInterventions();
 }
 function renderGrowth(){document.querySelectorAll('[data-growth]').forEach(el=>{if(document.activeElement!==el)el.value=state.growth[el.dataset.growth]??''});const erv=state.tenancies.reduce((a,t)=>a+(Number(t.erv)||0),0),g=state.growth,r=Number(g.rate)/100,y=Number(g.years),term=Number(g.term),free=Number(g.free);const projected=erv*Math.pow(1+r,y),net=projected*Math.max(0,term*12-free)/(term*12);document.getElementById('growthresults').textContent=erv>0&&Number.isFinite(net)&&term>0?'Aggregate ERV '+asMoney(erv)+' pa → projected '+asMoney(projected)+' pa in '+y+' years. Illustrative straight-line net effective '+asMoney(net)+' pa after '+free+' months rent-free over '+term+' years.':'Enter tenancy ERVs to calculate a projection.'}
 function parseCSV(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){row.push(cell);cell=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell=''}else cell+=c}row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows}
