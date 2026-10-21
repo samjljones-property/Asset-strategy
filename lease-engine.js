@@ -8,7 +8,7 @@ const num=(x,label)=>{const n=Number(x??0);if(!Number.isFinite(n)||n<0)throw Err
 const isOccupied=t=>!!(t.occupier&&String(t.occupier).toLowerCase()!=='vacant'&&Number(t.rent)>0);
 function leaseEvents(tenancy,events=[],start,horizon){
  const first=month(start),length=num(horizon,'horizon');
- if(!Number.isInteger(length)||length>600)throw Error('Invalid horizon');
+ if(!Number.isInteger(length)||length>1200)throw Error('Invalid horizon');
  const rent=Array(length).fill(0),cost=Array(length).fill(0),vacant=Array(length).fill(1),incentive=Array(length).fill(0),eventLog=[];
  const begin=tenancy.commencement?month(tenancy.commencement):-Infinity;
  const expiry=tenancy.expiry?month(tenancy.expiry):Infinity;
@@ -71,7 +71,8 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
  if(!Number.isInteger(voidPeriod)||!Number.isInteger(free))throw Error('Void and rent-free months must be integers');
  const length=n+years*12+1,actual=leaseEvents(tenancy,events,start,length),first=month(start);
  const security=leaseSecurity(tenancy,events,iso(first+n));
- const end=security.expiry?month(security.expiry):first+n+years*12;
+ const exitMonth=first+n;
+ const end=security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
  const breakAt=security.breakDate?month(security.breakDate):Infinity;
  const rollover=Math.min(end,breakAt)+1;
  const discount=Math.pow(1+rate,1/12)-1;
