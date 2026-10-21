@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'networkidle'});
   assert.equal(await page.locator('#globalstatus').count(),1);
   assert.ok(!(await page.locator('#globalstatus').innerText()).includes('Calculation error'),'Application startup failed');
-  for(const tab of ['tenancies','property','results']){
+  for(const tab of ['tenancies','property','overview','sensitivities','cashflows']){
    await page.locator('.tab[data-tab="'+tab+'"]').click();
    assert.ok(await page.locator('#'+tab).evaluate(el=>el.classList.contains('active')),'Navigation failed: '+tab);
   }
