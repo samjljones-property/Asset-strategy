@@ -17,6 +17,8 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
    await page.locator('.tab[data-tab="'+tab+'"]').click();
    assert.ok(await page.locator('#'+tab).evaluate(el=>el.classList.contains('active')),'Navigation failed: '+tab);
   }
+  await page.locator('.tab[data-tab="overview"]').click();
+  assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="tenancies"]').click();
   await page.locator('#addtenancy').click();
   assert.ok(await page.locator('#unit-target option').count()>0,'Unit selector did not populate');
