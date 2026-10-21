@@ -1,0 +1,22 @@
+name: Lease engine regression tests
+on:
+  push:
+    paths:
+      - 'lease-engine.js'
+      - 'lease-engine.test.js'
+      - '.github/workflows/lease-tests.yml'
+  pull_request:
+    paths:
+      - 'lease-engine.js'
+      - 'lease-engine.test.js'
+      - '.github/workflows/lease-tests.yml'
+jobs:
+  lease-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run lease and valuation regression tests
+        run: node lease-engine.test.js
