@@ -105,3 +105,12 @@ assert.throws(()=>leaseEvents(chainedLease,[
  {action:'break',rent:180000,term:60}
 ],'2027-01-01',24));
 console.log('Chained lease-event chronology tests passed');
+
+const newLettingUnit={unit:'Empty',occupier:'Vacant',rent:0,erv:240000};
+const valuationBase=termReversionValue({tenancy:newLettingUnit,start:'2027-01-01',exitMonths:12,capRate:6});
+const valuationLet=termReversionValue({tenancy:newLettingUnit,events:[{action:'relet',eventDate:'2027-01-01',refurb:0,void:3,free:6,term:120,rent:240000}],start:'2027-01-01',exitMonths:12,capRate:6});
+assert.ok(valuationLet.value>valuationBase.value,'Completed letting should increase value by removing assumed reletting void and incentive');
+assert.equal(valuationLet.rolloverMonth,'2037-05-01');
+const valuationFuture=termReversionValue({tenancy:newLettingUnit,events:[{action:'relet',eventDate:'2030-01-01',void:3,free:6,term:120,rent:240000}],start:'2027-01-01',exitMonths:12,capRate:6});
+assert.equal(valuationFuture.value,valuationBase.value,'Uncommitted future intervention must not affect current exit valuation');
+console.log('New letting exit valuation tests passed');
