@@ -13,26 +13,30 @@ function leaseEvents(tenancy,events=[],start,horizon){
  const begin=tenancy.commencement?month(tenancy.commencement):-Infinity;
  const expiry=tenancy.expiry?month(tenancy.expiry):Infinity;
  if(isOccupied(tenancy))for(let i=0;i<length;i++){const m=first+i;if(m>=begin&&m<=expiry){rent[i]=num(tenancy.rent,'passing rent')/12;vacant[i]=0}}
- const sorted=events.slice().sort((a,b)=>month(a.date||a.eventDate||tenancy.expiry||start)-month(b.date||b.eventDate||tenancy.expiry||start));
+ const effectiveDate=e=>e.action==='break'?tenancy.breakDate||e.eventDate||e.date:e.action==='review'||e.action==='regear'||e.action==='surrender'||e.action==='removeBreak'?e.eventDate||e.date:e.eventDate||e.date||tenancy.expiry||start;
+ const sorted=events.slice().sort((a,b)=>month(effectiveDate(a)||start)-month(effectiveDate(b)||start));
+ let currentExpiry=expiry;
+ let currentBreak=tenancy.breakDate?month(tenancy.breakDate):null;
+ let currentCommencement=begin;
  for(const e of sorted){
   const kind=e.action;
   if(kind==='hold')continue;
-  if(kind==='removeBreak'){if(!tenancy.breakDate)throw Error('No contractual break to remove');eventLog.push({action:kind,eventMonth:iso(month(e.eventDate||e.date||start)),removedBreak:tenancy.breakDate});continue;}
-  const reference=kind==='break'?tenancy.breakDate:kind==='review'||kind==='regear'||kind==='surrender'?(e.eventDate||e.date):tenancy.expiry||start;
+  if(kind==='removeBreak'){if(currentBreak===null)throw Error('No contractual break to remove');const removed=iso(currentBreak);currentBreak=null;eventLog.push({action:kind,eventMonth:iso(month(e.eventDate||e.date||start)),removedBreak:removed});continue;}
+  const reference=kind==='break'?(currentBreak===null?null:iso(currentBreak)):kind==='review'||kind==='regear'||kind==='surrender'?(e.eventDate||e.date):e.eventDate||e.date||(Number.isFinite(currentExpiry)?iso(currentExpiry):start);
   if(!reference)throw Error(kind+' requires an event date');
-  if(kind==='break'&&events.some(x=>x.action==='removeBreak'&&month(x.eventDate||x.date||start)<=month(reference)))throw Error('Cannot exercise a break removed by an earlier agreement');
-  const base=month(reference)+(kind==='break'||kind==='renew'||(kind==='relet'&&tenancy.expiry)?1:0);
+  if(kind==='break'&&currentBreak===null)throw Error('Cannot exercise a break without a current contractual break');
+  const base=month(reference)+(kind==='break'||kind==='renew'||(kind==='relet'&&Number.isFinite(currentExpiry))?1:0);
   const works=num(e.refurb,'refurb months'),voidMonths=num(e.void,'void months'),free=num(e.free,'rent-free months'),term=num(e.term??120,'lease term'),newRent=num(e.rent,'new rent'),fee=num(e.cost,'landlord costs');
   const overlap=e.overlap==='concurrent'?Math.max(works,voidMonths):works+voidMonths;
   const leaseStart=e.override&&e.date?month(e.date):base+(kind==='review'||kind==='regear'?0:overlap);
   if(!Number.isInteger(leaseStart)||!Number.isInteger(term)||!Number.isInteger(free))throw Error('Months must be whole numbers');
   const eventStart=kind==='review'||kind==='regear'?leaseStart:kind==='surrender'?month(reference):base;
-  if(kind==='break'&&!tenancy.breakDate)throw Error('Break date missing');
+  if(kind==='break'&&currentBreak===null)throw Error('Break date missing');
   for(let i=0;i<length;i++){
    const m=first+i;
    if(m<eventStart)continue;
    if(kind==='review'){
-    if(m<=expiry&&vacant[i]===0)rent[i]=newRent/12;
+    if(m<=currentExpiry&&vacant[i]===0)rent[i]=newRent/12;
     continue;
    }
    if(m<leaseStart){rent[i]=0;vacant[i]=1;incentive[i]=0;continue}
@@ -41,6 +45,7 @@ function leaseEvents(tenancy,events=[],start,horizon){
    vacant[i]=active?0:1;
    incentive[i]=active&&elapsed<free?1:0;
   }
+  if(kind!=='review'){currentExpiry=kind==='surrender'?eventStart-1:leaseStart+term-1;currentCommencement=leaseStart;currentBreak=e.newBreakDate?month(e.newBreakDate):null;}
   const chargeMonth=kind==='review'?leaseStart:eventStart;
   if(chargeMonth>=first&&chargeMonth<first+length)cost[chargeMonth-first]+=fee;
   eventLog.push({action:kind,eventMonth:iso(base),leaseCommencement:iso(leaseStart),rentCommencement:iso(leaseStart+free),cost:fee});
