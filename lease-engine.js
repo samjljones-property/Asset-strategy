@@ -59,9 +59,7 @@ function assetCashflow({tenancies,interventions={},scenario,start,months,operati
  }
  return {rows,lines,metrics:{totalRent:rows.reduce((a,x)=>a+x.rent,0),interventionCosts:lines.reduce((a,x)=>a+x.cost.slice(0,n).reduce((b,c)=>b+c,0),0),vacantUnitMonths:lines.reduce((a,x)=>a+x.vacant.slice(0,n).reduce((b,c)=>b+c,0),0),rentFreeUnitMonths:lines.reduce((a,x)=>a+x.incentive.slice(0,n).reduce((b,c)=>b+c,0),0),exitRent:lines.reduce((a,x)=>a+x.rent[n],0)*12}};
 }
-/* Explicit unit-level capitalisation assumptions. A yield shift is expressed in
-   percentage points, not a multiplier. This is a simple income-capitalisation
-   valuation, not a term-and-reversion valuation. */
+/* Unit yields, lease-sensitive term and reversion and attributable value effects. */
 /* Monthly term-and-reversion DCF at the unit's capitalisation yield.
    ERV is a current annual market-rent assumption, with explicit reletting
    downtime, incentives and costs. No speculative rental growth is assumed. */
@@ -109,10 +107,11 @@ function unitValuations({tenancies,interventions={},start,exitMonths,unitYields=
   const line=leaseEvents(t,interventions[i]||[],start,n+1);
   const baseline=leaseEvents(t,[],start,n+1);
   const exitIncome=line.rent[n]*12,baselineIncome=baseline.rent[n]*12;
-  const baselineValue=baselineIncome/(base/100);
-  const incomeOnlyValue=exitIncome/(base/100);
-  const amValue=exitIncome/((base+adjustment)/100);
-  const finalValue=exitIncome/(applied/100);
+  const model=(withEvents,capRate)=>termReversionValue({tenancy:t,events:withEvents,start,exitMonths:n,capRate,erv:assumptions.erv??t.erv??t.rent,voidMonths:assumptions.voidMonths??6,rentFreeMonths:assumptions.rentFreeMonths??6,relettingCost:assumptions.relettingCost??0});
+  const baselineValue=model([],base).value;
+  const incomeOnlyValue=model(interventions[i]||[],base).value;
+  const amValue=model(interventions[i]||[],base+adjustment).value;
+  const finalValue=model(interventions[i]||[],applied).value;
   if(base+adjustment<=0)throw Error('Invalid AM yield for unit '+(t.unit||i));
   return {unitId:t.id??String(i),unit:t.unit||'Unit '+(i+1),baseYield:base,amAdjustment:adjustment,globalShift:shift,exitYield:applied,baselineIncome,exitIncome,baselineValue,incomeOnlyValue,amValue,finalValue,incomeEffect:incomeOnlyValue-baselineValue,amYieldEffect:amValue-incomeOnlyValue,marketEffect:finalValue-amValue,totalEffect:finalValue-baselineValue};
  });
