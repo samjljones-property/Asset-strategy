@@ -32,6 +32,13 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   const check=await page.evaluate(()=>{const id=Object.keys(state.options)[0];return {mode:state.options[id].exitValueMode,value:state.options[id].manualExitValue,rationale:state.options[id].exitValueRationale,errors:validate()}});
   assert.equal(check.mode,'manual');assert.equal(check.value,80000000);assert.ok(check.rationale.includes('buyer proposal'));
   assert.ok(!check.errors.some(x=>x.includes('manual exit value')),'Valid override should pass input checks');
+  const reconciled=await page.evaluate(()=>{const id=Object.keys(state.options)[0],o=state.options[id],m=engineModel(id),c=calc(id),terminal=c.flows.at(-1),aggregate=m.exitReconciliation.aggregate;return {gross:c.gross,selected:m.exitReconciliation.selected,manual:m.exitReconciliation.manual,aggregate,terminal:terminal.exit,expectedNet:80000000*(1-(Number(o.saleFee)||0)/100)-(Number(o.saleLegal)||0),report:document.querySelector('#ic-summary')?.textContent||'',npv:c.npv}});
+  assert.equal(reconciled.gross,80000000,'Reported gross exit must match override');
+  assert.equal(reconciled.selected,80000000,'Engine must use selected manual value');
+  assert.equal(reconciled.manual,true);
+  assert.ok(Math.abs(reconciled.terminal-reconciled.expectedNet)<0.01,'Cash flow exit must reconcile after disposal costs');
+  assert.ok(reconciled.report.includes('Exit valuation reconciliation'),'Committee report must disclose exit valuation basis');
+  assert.ok(reconciled.report.includes('Indicative buyer proposal'),'Committee report must disclose override rationale');
   await first.selectOption('aggregate');
   const before=await page.locator('[data-strategy-card]').count();
   await page.locator('[data-duplicate]').first().click();
