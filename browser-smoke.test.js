@@ -23,6 +23,13 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
+  await page.locator('.tab[data-tab="options"]').click();
+  assert.ok((await page.locator('#options h2').first().innerText()).includes('Scenarios'));
+  const before=await page.locator('[data-strategy-card]').count();
+  await page.locator('[data-duplicate]').first().click();
+  assert.equal(await page.locator('[data-strategy-card]').count(),before+1,'Scenario duplication failed');
+  const isolation=await page.evaluate(()=>{const ids=Object.keys(state.options);const source=ids[0],copy=ids[ids.length-1];const original=JSON.stringify(state.interventions?.[source]||{});state.interventions[copy]=state.interventions[copy]||{};state.interventions[copy][0]=[{action:'review',eventDate:'2028-01-01',rent:999999}];return JSON.stringify(state.interventions?.[source]||{})===original});
+  assert.ok(isolation,'Duplicated scenario changed original unit actions');
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
   assert.equal(await page.locator('#unit-base-yield').count(),1);
