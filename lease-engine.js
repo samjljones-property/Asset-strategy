@@ -74,7 +74,7 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
  const exitMonth=first+n;
  const end=security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
  const breakAt=security.breakDate?month(security.breakDate):Infinity;
- const rollover=Math.min(end,breakAt)+1;
+ const rollover=Math.max(exitMonth,Math.min(end,breakAt)+1);
  const discount=Math.pow(1+rate,1/12)-1;
  let pv=0,termValue=0,reversionValue=0,landlordCosts=0;
  for(let k=0;k<years*12;k++){
