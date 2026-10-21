@@ -13,6 +13,9 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'networkidle'});
   assert.equal(await page.locator('#globalstatus').count(),1);
   assert.ok(!(await page.locator('#globalstatus').innerText()).includes('Calculation error'),'Application startup failed');
+  const singleLet=await page.evaluate(()=>{const id=Object.keys(state.options)[0],o=state.options[id],old={mode:o.exitValueMode,value:o.manualExitValue,rationale:o.exitValueRationale};const was=state.tenancies;state.tenancies=[];o.exitValueMode='manual';o.manualExitValue=42000000;o.exitValueRationale='Illustrative sale evidence';const result=calc(id),last=result.flows.at(-1),expected=42000000*(1-(Number(o.saleFee)||0)/100)-(Number(o.saleLegal)||0);o.exitValueMode=old.mode;o.manualExitValue=old.value;o.exitValueRationale=old.rationale;state.tenancies=was;return {gross:result.gross,terminal:last.exit,expected}});
+  assert.equal(singleLet.gross,42000000,'Single-let appraisal must honour manual exit value');
+  assert.ok(Math.abs(singleLet.terminal-singleLet.expected)<0.01,'Single-let terminal cash flow must reconcile');
   for(const tab of ['tenancies','property','overview','sensitivities','cashflows']){
    await page.locator('.tab[data-tab="'+tab+'"]').click();
    assert.ok(await page.locator('#'+tab).evaluate(el=>el.classList.contains('active')),'Navigation failed: '+tab);
