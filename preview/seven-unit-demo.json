@@ -1,0 +1,185 @@
+{
+  "assetId": "DEMO-7U-001",
+  "name": "Seven-unit City office — illustrative",
+  "start": "2026-11-01",
+  "value": 70000000,
+  "passing": 3637500,
+  "expiry": "2038-09-30",
+  "months": 60,
+  "costs": 0,
+  "hurdle": 8,
+  "risk": "Core-plus",
+  "capacity": 5000000,
+  "fundId": "DEMO-FUND",
+  "strategy": "Compare contractual hold, income security and active letting on identical hold and yield assumptions.",
+  "financeEnabled": false,
+  "tenancies": [
+    {
+      "id": "0",
+      "unit": "Ground Floor",
+      "occupier": "Harbour Coffee Ltd",
+      "area": 5200,
+      "rent": 286000,
+      "erv": 338000,
+      "commencement": "2023-06-01",
+      "expiry": "2033-05-31",
+      "breakDate": "2028-05-31",
+      "reviewDate": "2028-06-01"
+    },
+    {
+      "id": "1",
+      "unit": "First Floor",
+      "occupier": "Northbridge Consulting LLP",
+      "area": 11200,
+      "rent": 672000,
+      "erv": 784000,
+      "commencement": "2022-01-01",
+      "expiry": "2032-12-31",
+      "breakDate": "2027-12-31",
+      "reviewDate": "2027-01-01"
+    },
+    {
+      "id": "2",
+      "unit": "Second Floor",
+      "occupier": "Meridian Technology Ltd",
+      "area": 10800,
+      "rent": 702000,
+      "erv": 810000,
+      "commencement": "2024-04-01",
+      "expiry": "2034-03-31",
+      "breakDate": "2029-03-31",
+      "reviewDate": "2029-04-01"
+    },
+    {
+      "id": "3",
+      "unit": "Third Floor",
+      "occupier": "Westfield Legal Partners",
+      "area": 10500,
+      "rent": 682500,
+      "erv": 787500,
+      "commencement": "2021-09-01",
+      "expiry": "2031-08-31",
+      "breakDate": "",
+      "reviewDate": "2026-09-01"
+    },
+    {
+      "id": "4",
+      "unit": "Fourth Floor",
+      "occupier": "Atlas Design Studio Ltd",
+      "area": 9800,
+      "rent": 588000,
+      "erv": 735000,
+      "commencement": "2025-01-01",
+      "expiry": "2035-12-31",
+      "breakDate": "2030-12-31",
+      "reviewDate": "2030-01-01"
+    },
+    {
+      "id": "5",
+      "unit": "Fifth Floor",
+      "occupier": "Orchard Capital Advisors Ltd",
+      "area": 10100,
+      "rent": 707000,
+      "erv": 808000,
+      "commencement": "2023-10-01",
+      "expiry": "2038-09-30",
+      "breakDate": "2028-09-30",
+      "reviewDate": "2028-10-01"
+    },
+    {
+      "id": "6",
+      "unit": "Sixth Floor",
+      "occupier": "Vacant",
+      "area": 9200,
+      "rent": 0,
+      "erv": 690000,
+      "commencement": "",
+      "expiry": "",
+      "breakDate": "",
+      "reviewDate": ""
+    }
+  ],
+  "options": {
+    "baseline": {
+      "type": "hold",
+      "name": "Contractual hold",
+      "description": "Illustrative investment committee comparison",
+      "exitMonths": 60,
+      "exitYield": 6.25,
+      "saleFee": 1,
+      "saleLegal": 30000,
+      "capex": 0,
+      "applicable": {}
+    },
+    "security": {
+      "type": "hold",
+      "name": "Regear and secure income",
+      "description": "Illustrative investment committee comparison",
+      "exitMonths": 60,
+      "exitYield": 6.25,
+      "saleFee": 1,
+      "saleLegal": 30000,
+      "capex": 0,
+      "applicable": {}
+    },
+    "letting": {
+      "type": "hold",
+      "name": "Active letting and reversion",
+      "description": "Illustrative investment committee comparison",
+      "exitMonths": 60,
+      "exitYield": 6.25,
+      "saleFee": 1,
+      "saleLegal": 30000,
+      "capex": 0,
+      "applicable": {}
+    }
+  },
+  "interventions": {
+    "security": {
+      "1": [
+        {
+          "action": "regear",
+          "eventDate": "2027-06-01",
+          "rent": 735000,
+          "term": 120,
+          "free": 3,
+          "cost": 35000
+        }
+      ],
+      "4": [
+        {
+          "action": "removeBreak",
+          "eventDate": "2027-04-01"
+        }
+      ]
+    },
+    "letting": {
+      "3": [
+        {
+          "action": "relet",
+          "eventDate": "2031-09-01",
+          "refurb": 2,
+          "void": 4,
+          "free": 6,
+          "term": 120,
+          "rent": 787500,
+          "cost": 120000
+        }
+      ],
+      "6": [
+        {
+          "action": "relet",
+          "eventDate": "2026-11-01",
+          "refurb": 3,
+          "void": 6,
+          "free": 9,
+          "term": 120,
+          "rent": 690000,
+          "cost": 350000
+        }
+      ]
+    }
+  },
+  "unitYields": {},
+  "marketShifts": {}
+}
