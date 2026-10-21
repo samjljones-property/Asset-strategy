@@ -82,8 +82,9 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
  const latest=leases.length?leases[leases.length-1]:null;
  const plannedExpiry=latest?month(latest.leaseCommencement)+num(latest.termMonths,'lease term')-1:null;
  const end=plannedExpiry!==null?plannedExpiry:security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
- const breakAt=security.breakDate?month(security.breakDate):Infinity;
- const rollover=Math.max(exitMonth,Math.min(end,breakAt)+1);
+ /* An unexercised tenant break is a risk, not a certain lease termination.
+    Do not truncate the contracted term without an explicit break event. */
+ const rollover=Math.max(exitMonth,end+1);
  const committedLetting=latest&&month(latest.leaseCommencement)>=exitMonth&&plannedExpiry!==null;
 
  const discount=Math.pow(1+rate,1/12)-1;
