@@ -32,6 +32,10 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.ok(isolation,'Duplicated scenario changed original unit actions');
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
+  assert.ok((await page.locator('#scenario-context').innerText()).includes('Editing'),'Scenario context is not visible');
+  await page.locator('#scenario-compare').click();
+  assert.ok(await page.locator('#overview').evaluate(el=>el.classList.contains('active')),'Scenario comparison navigation failed');
+  await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-base-yield').count(),1);
   assert.equal(await page.locator('#unit-reversion-void').count(),1);
   await page.locator('#unit-base-yield').fill('6.25');
