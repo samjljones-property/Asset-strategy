@@ -57,5 +57,32 @@ function assetCashflow({tenancies,interventions={},scenario,start,months,operati
  }
  return {rows,lines,metrics:{totalRent:rows.reduce((a,x)=>a+x.rent,0),interventionCosts:lines.reduce((a,x)=>a+x.cost.slice(0,n).reduce((b,c)=>b+c,0),0),vacantUnitMonths:lines.reduce((a,x)=>a+x.vacant.slice(0,n).reduce((b,c)=>b+c,0),0),rentFreeUnitMonths:lines.reduce((a,x)=>a+x.incentive.slice(0,n).reduce((b,c)=>b+c,0),0),exitRent:lines.reduce((a,x)=>a+x.rent[n],0)*12}};
 }
-const api={leaseEvents,assetCashflow};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
+/* Explicit unit-level capitalisation assumptions. A yield shift is expressed in
+   percentage points, not a multiplier. This is a simple income-capitalisation
+   valuation, not a term-and-reversion valuation. */
+function unitValuations({tenancies,interventions={},start,exitMonths,unitYields={},globalShift=0,defaultYield}){
+ const n=num(exitMonths,'exit months');
+ if(!Number.isInteger(n)||n<1||n>600)throw Error('Invalid exit months');
+ const shift=Number(globalShift);
+ if(!Number.isFinite(shift))throw Error('Invalid global yield shift');
+ const units=tenancies.map((t,i)=>{
+  const assumptions=unitYields[t.id]||unitYields[i]||{};
+  const base=Number(assumptions.baseYield??defaultYield);
+  const adjustment=Number(assumptions.amAdjustment??0);
+  const applied=base+adjustment+shift;
+  if(!Number.isFinite(applied)||applied<=0||applied>100)throw Error('Invalid capitalisation yield for unit '+(t.unit||i));
+  const line=leaseEvents(t,interventions[i]||[],start,n+1);
+  const baseline=leaseEvents(t,[],start,n+1);
+  const exitIncome=line.rent[n]*12,baselineIncome=baseline.rent[n]*12;
+  const baselineValue=baselineIncome/(base/100);
+  const incomeOnlyValue=exitIncome/(base/100);
+  const amValue=exitIncome/((base+adjustment)/100);
+  const finalValue=exitIncome/(applied/100);
+  if(base+adjustment<=0)throw Error('Invalid AM yield for unit '+(t.unit||i));
+  return {unitId:t.id??String(i),unit:t.unit||'Unit '+(i+1),baseYield:base,amAdjustment:adjustment,globalShift:shift,exitYield:applied,baselineIncome,exitIncome,baselineValue,incomeOnlyValue,amValue,finalValue,incomeEffect:incomeOnlyValue-baselineValue,amYieldEffect:amValue-incomeOnlyValue,marketEffect:finalValue-amValue,totalEffect:finalValue-baselineValue};
+ });
+ const total=key=>units.reduce((sum,u)=>sum+u[key],0);
+ return {units,totals:{baselineValue:total('baselineValue'),incomeOnlyValue:total('incomeOnlyValue'),amValue:total('amValue'),finalValue:total('finalValue'),incomeEffect:total('incomeEffect'),amYieldEffect:total('amYieldEffect'),marketEffect:total('marketEffect'),totalEffect:total('totalEffect'),exitIncome:total('exitIncome')}};
+}
+const api={leaseEvents,assetCashflow,unitValuations};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
