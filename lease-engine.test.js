@@ -81,3 +81,27 @@ assert.ok(termReversionValue({tenancy:seven[6],start:'2026-11-01',exitMonths:300
 const expiredAtExit=termReversionValue({tenancy:seven[3],start:'2026-11-01',exitMonths:60,capRate:6.25});
 assert.equal(expiredAtExit.rolloverMonth,'2031-11-01');
 assert.ok(expiredAtExit.value>0);
+
+const chainedLease={unit:'Sequence',occupier:'Tenant',rent:120000,erv:180000,expiry:'2027-12-31',breakDate:'2027-06-30'};
+const chained=leaseEvents(chainedLease,[
+ {action:'review',eventDate:'2029-01-01',rent:192000},
+ {action:'regear',eventDate:'2027-04-01',rent:144000,term:60,free:2},
+ {action:'review',eventDate:'2028-01-01',rent:168000}
+],'2027-01-01',72);
+assert.equal(chained.rent[0],10000);
+assert.equal(chained.rent[3],0);
+assert.equal(chained.rent[5],12000);
+assert.equal(chained.rent[12],14000);
+assert.equal(chained.rent[24],16000);
+assert.equal(chained.rent[63],0);
+assert.equal(chained.eventLog.map(x=>x.action).join(','),'regear,review,review');
+const removedBreak=leaseEvents(chainedLease,[
+ {action:'removeBreak',eventDate:'2027-02-01'},
+ {action:'regear',eventDate:'2027-04-01',rent:144000,term:60}
+],'2027-01-01',24);
+assert.equal(removedBreak.eventLog[0].action,'removeBreak');
+assert.throws(()=>leaseEvents(chainedLease,[
+ {action:'removeBreak',eventDate:'2027-02-01'},
+ {action:'break',rent:180000,term:60}
+],'2027-01-01',24));
+console.log('Chained lease-event chronology tests passed');
