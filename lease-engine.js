@@ -19,7 +19,7 @@ function leaseEvents(tenancy,events=[],start,horizon){
   if(kind==='hold')continue;
   const reference=kind==='break'?tenancy.breakDate:kind==='review'||kind==='regear'||kind==='surrender'?(e.eventDate||e.date):tenancy.expiry||start;
   if(!reference)throw Error(kind+' requires an event date');
-  const base=month(reference)+(kind==='break'||kind==='renew'||kind==='relet'?1:0);
+  const base=month(reference)+(kind==='break'||kind==='renew'||(kind==='relet'&&tenancy.expiry)?1:0);
   const works=num(e.refurb,'refurb months'),voidMonths=num(e.void,'void months'),free=num(e.free,'rent-free months'),term=num(e.term??120,'lease term'),newRent=num(e.rent,'new rent'),fee=num(e.cost,'landlord costs');
   const overlap=e.overlap==='concurrent'?Math.max(works,voidMonths):works+voidMonths;
   const leaseStart=e.override&&e.date?month(e.date):base+(kind==='review'||kind==='regear'?0:overlap);
