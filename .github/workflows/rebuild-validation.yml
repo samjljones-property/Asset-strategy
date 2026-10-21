@@ -1,0 +1,27 @@
+name: Rebuild validation
+on:
+  push:
+    branches: [rebuild/strategy-first]
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check lease-engine.js
+          node --check strategy-domain.js
+          node --check scenario-adapter.js
+          node --check agency-fees.js
+      - name: Unit tests
+        run: |
+          node lease-engine.test.js
+          node strategy-domain.test.js
+          node agency-fees.test.js
+      - name: Browser smoke tests
+        run: node browser-smoke.test.js
