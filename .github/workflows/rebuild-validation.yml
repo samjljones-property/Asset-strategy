@@ -23,5 +23,6 @@ jobs:
           node lease-engine.test.js
           node strategy-domain.test.js
           node agency-fees.test.js
+          node scenario-adapter.test.js
       - name: Browser smoke tests
         run: node browser-smoke.test.js
