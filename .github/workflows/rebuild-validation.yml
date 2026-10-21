@@ -18,12 +18,14 @@ jobs:
           node --check strategy-domain.js
           node --check scenario-adapter.js
           node --check agency-fees.js
+          node --check investment-returns.js
       - name: Unit tests
         run: |
           node lease-engine.test.js
           node strategy-domain.test.js
           node agency-fees.test.js
           node scenario-adapter.test.js
+          node investment-returns.test.js
       - name: Install browser test dependencies
         run: |
           npm install --no-save playwright@1.56.1
