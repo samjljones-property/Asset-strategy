@@ -28,7 +28,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Browser smoke tests
-        run: |
-          node browser-smoke.test.js
-          node workspace-smoke.test.js
+      - name: Rebuilt workspace browser smoke
+        run: node workspace-smoke.test.js
+      - name: Legacy browser smoke
+        run: node browser-smoke.test.js
