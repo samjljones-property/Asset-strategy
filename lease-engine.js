@@ -24,13 +24,13 @@ function leaseEvents(tenancy,events=[],start,horizon){
   const overlap=e.overlap==='concurrent'?Math.max(works,voidMonths):works+voidMonths;
   const leaseStart=e.override&&e.date?month(e.date):base+(kind==='review'||kind==='regear'?0:overlap);
   if(!Number.isInteger(leaseStart)||!Number.isInteger(term)||!Number.isInteger(free))throw Error('Months must be whole numbers');
-  const eventStart=kind==='review'||kind==='regear'?leaseStart:base;
+  const eventStart=kind==='review'||kind==='regear'?leaseStart:kind==='surrender'?month(reference):base;
   if(kind==='break'&&!tenancy.breakDate)throw Error('Break date missing');
   for(let i=0;i<length;i++){
    const m=first+i;
    if(m<eventStart)continue;
    if(kind==='review'){
-    if(m<=expiry&&rent[i]>0)rent[i]=newRent/12;
+    if(m<=expiry&&vacant[i]===0)rent[i]=newRent/12;
     continue;
    }
    if(m<leaseStart){rent[i]=0;vacant[i]=1;incentive[i]=0;continue}
@@ -39,7 +39,7 @@ function leaseEvents(tenancy,events=[],start,horizon){
    vacant[i]=active?0:1;
    incentive[i]=active&&elapsed<free?1:0;
   }
-  const chargeMonth=kind==='review'?leaseStart:base;
+  const chargeMonth=kind==='review'?leaseStart:eventStart;
   if(chargeMonth>=first&&chargeMonth<first+length)cost[chargeMonth-first]+=fee;
   eventLog.push({action:kind,eventMonth:iso(base),leaseCommencement:iso(leaseStart),rentCommencement:iso(leaseStart+free),cost:fee});
  }
