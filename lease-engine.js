@@ -74,12 +74,19 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
  const rate=Number(capRate)/100;if(!Number.isFinite(rate)||rate<=0||rate>=1)throw Error('Invalid valuation yield');
  const marketRent=num(erv??tenancy.erv,'ERV'),voidPeriod=num(voidMonths,'reletting void'),free=num(rentFreeMonths,'reletting rent free'),cost=num(relettingCost,'reletting costs');
  if(!Number.isInteger(voidPeriod)||!Number.isInteger(free))throw Error('Void and rent-free months must be integers');
- const length=n+years*12+1,actual=leaseEvents(tenancy,events,start,length),first=month(start);
- const security=leaseSecurity(tenancy,events,iso(first+n));
- const exitMonth=first+n;
- const end=security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
+ const length=n+years*12+1,first=month(start),exitMonth=first+n;
+ const committed=events.filter(e=>{const effective=e.action==='break'?tenancy.breakDate||e.eventDate||e.date:e.eventDate||e.date||tenancy.expiry||start;return effective&&month(effective)<=exitMonth});
+ const actual=leaseEvents(tenancy,committed,start,length);
+ const security=leaseSecurity(tenancy,committed,iso(exitMonth));
+ const leases=actual.eventLog.filter(e=>!['review','removeBreak'].includes(e.action));
+ const latest=leases.length?leases[leases.length-1]:null;
+ const latestEvent=committed.filter(e=>!['hold','review','removeBreak'].includes(e.action)).at(-1);
+ const plannedExpiry=latest&&latestEvent?month(latest.leaseCommencement)+num(latestEvent.term??120,'lease term')-1:null;
+ const end=plannedExpiry!==null?plannedExpiry:security.expiry?month(security.expiry):isOccupied(tenancy)?exitMonth+years*12:exitMonth-1;
  const breakAt=security.breakDate?month(security.breakDate):Infinity;
  const rollover=Math.max(exitMonth,Math.min(end,breakAt)+1);
+ const committedLetting=latest&&month(latest.leaseCommencement)>=exitMonth&&plannedExpiry!==null;
+
  const discount=Math.pow(1+rate,1/12)-1;
  let pv=0,termValue=0,reversionValue=0,landlordCosts=0;
  for(let k=0;k<years*12;k++){
@@ -87,6 +94,7 @@ function termReversionValue({tenancy,events=[],start,exitMonths,capRate,erv,void
   const withinLease=m<rollover&&actual.vacant[idx]===0;
   let monthly=0;
   if(withinLease)monthly=actual.rent[idx];
+  else if(committedLetting&&m<rollover){monthly=0}
   else if(monthsFromRollover>=0){
    if(monthsFromRollover===voidPeriod){monthly-=cost;landlordCosts+=cost/Math.pow(1+discount,k+1)}
    if(monthsFromRollover>=voidPeriod+free)monthly+=marketRent/12;
