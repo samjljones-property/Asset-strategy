@@ -24,15 +24,17 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="tenancies"]').click();
-  await page.locator('#addtenancy').click();
-  assert.ok(await page.locator('#unit-target option').count()>0,'Unit selector did not populate');
+  assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
   assert.equal(await page.locator('#unit-base-yield').count(),1);
   assert.equal(await page.locator('#unit-reversion-void').count(),1);
   await page.locator('#unit-base-yield').fill('6.25');
   await page.locator('#unit-yield-adjust').fill('-0.5');
   await page.locator('#unit-global-shift').fill('0.25');
+  await page.locator('#unit-yield-rationale').fill('Illustrative analyst judgement; independent comparable evidence required.');
   await page.locator('#unit-yield-save').click();
   assert.equal(await page.locator('#unit-base-yield').inputValue(),'6.25');
+  await page.locator('.tab[data-tab="overview"]').click();
+  assert.ok((await page.locator('#ic-summary').innerText()).includes('Unit business plan'),'Unit-level committee plan missing');
   assert.deepEqual(errors,[],'Browser JavaScript errors');
   console.log('Browser smoke tests passed: startup, navigation, tenancy, yield controls');
  }finally{await browser.close();server.close()}
