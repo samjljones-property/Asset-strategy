@@ -24,6 +24,12 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#loaddemo').evaluate(el=>el.click());
   await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
+  const csvRoundTrip=await page.evaluate(()=>{const before=JSON.stringify(state.tenancies),csv=[['unit','occupier','area','rent','erv','commencement','expiry','breakDate','reviewDate'].join(','),'Test Suite,Example Occupier,1000,50000,60000,2026-01-01,2031-01-01,,'].join('\\n');const n=importTenancyCSV(csv);const imported=state.tenancies[0];state.tenancies=JSON.parse(before);buildForms();render();return {count:n,unit:imported?.unit,occupier:imported?.occupier,rent:imported?.rent,restored:JSON.stringify(state.tenancies)===before}});
+  assert.equal(csvRoundTrip.count,1,'CSV import must load one row');
+  assert.equal(csvRoundTrip.unit,'Test Suite');
+  assert.equal(csvRoundTrip.occupier,'Example Occupier');
+  assert.equal(Number(csvRoundTrip.rent),50000);
+  assert.ok(csvRoundTrip.restored,'CSV test must restore the demonstration tenancy register');
   const three=await page.evaluate(()=>{const ids=Object.keys(state.options),data=ids.map(id=>{const c=calc(id),model=engineModel(id);return {id,name:state.options[id].name,irr:c.irr,npv:c.npv,exit:c.gross,monthly:c.flows.length,terminal:c.flows.at(-1).exit,actions:Object.values(state.interventions[id]||{}).flat().length,engineExit:model.rows.at(-1).exit}});return {tenancies:state.tenancies.length,ids,data}});
   assert.equal(three.tenancies,7,'Demo must contain seven tenancies');
   assert.equal(three.data.length,3,'Demo must provide three independently comparable strategies');
