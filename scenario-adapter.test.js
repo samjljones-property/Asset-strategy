@@ -17,4 +17,4 @@ const revised=adapt(duplicated,'test-copy');
 assert.equal(original.interventions[1][0].rent,735000);
 assert.equal(revised.interventions[1][0].rent,800000);
 assert.notEqual(assetCashflow(original.engineInput).metrics.totalRent,assetCashflow(revised.engineInput).metrics.totalRent);
-console.log('Scenario adapter regression tests passed');
+const feeCase=duplicateScenario(model,'security','fee-case','Fee case');const action=feeCase.scenarios.find(x=>x.id==='fee-case').unitPlans['1'].actions[0];action.parameters.rent=800000;action.parameters.cost=0;action.parameters.legalFees=12000;action.parameters.refurbCost=30000;action.parameters.lettingFeePct=10;assert.equal(adapt(feeCase,'fee-case').interventions[1][0].cost,122000,'Agency must use new contracted annual rent');action.parameters.lettingFeePct=-1;assert.throws(()=>adapt(feeCase,'fee-case'),/Invalid costs/);console.log('Scenario adapter regression tests passed');
