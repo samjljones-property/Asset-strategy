@@ -17,8 +17,10 @@ function leaseEvents(tenancy,events=[],start,horizon){
  for(const e of sorted){
   const kind=e.action;
   if(kind==='hold')continue;
+  if(kind==='removeBreak'){if(!tenancy.breakDate)throw Error('No contractual break to remove');eventLog.push({action:kind,eventMonth:iso(month(e.eventDate||e.date||start)),removedBreak:tenancy.breakDate});continue;}
   const reference=kind==='break'?tenancy.breakDate:kind==='review'||kind==='regear'||kind==='surrender'?(e.eventDate||e.date):tenancy.expiry||start;
   if(!reference)throw Error(kind+' requires an event date');
+  if(kind==='break'&&events.some(x=>x.action==='removeBreak'&&month(x.eventDate||x.date||start)<=month(reference)))throw Error('Cannot exercise a break removed by an earlier agreement');
   const base=month(reference)+(kind==='break'||kind==='renew'||(kind==='relet'&&tenancy.expiry)?1:0);
   const works=num(e.refurb,'refurb months'),voidMonths=num(e.void,'void months'),free=num(e.free,'rent-free months'),term=num(e.term??120,'lease term'),newRent=num(e.rent,'new rent'),fee=num(e.cost,'landlord costs');
   const overlap=e.overlap==='concurrent'?Math.max(works,voidMonths):works+voidMonths;
@@ -84,5 +86,18 @@ function unitValuations({tenancies,interventions={},start,exitMonths,unitYields=
  const total=key=>units.reduce((sum,u)=>sum+u[key],0);
  return {units,totals:{baselineValue:total('baselineValue'),incomeOnlyValue:total('incomeOnlyValue'),amValue:total('amValue'),finalValue:total('finalValue'),incomeEffect:total('incomeEffect'),amYieldEffect:total('amYieldEffect'),marketEffect:total('marketEffect'),totalEffect:total('totalEffect'),exitIncome:total('exitIncome')}};
 }
-const api={leaseEvents,assetCashflow,unitValuations};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
+/* Lease security is assessed independently of assumed cash-flow occupancy.
+   An unexercised break remains a legal option unless explicitly removed. */
+function leaseSecurity(tenancy,events=[],asOf){
+ const date=month(asOf),expiry=tenancy.expiry?month(tenancy.expiry):null;
+ let contractualExpiry=expiry,breakDate=tenancy.breakDate?month(tenancy.breakDate):null;
+ const ordered=events.filter(e=>e.action==='removeBreak'||e.action==='regear'||e.action==='renew').slice().sort((a,b)=>month(a.eventDate||a.date||asOf)-month(b.eventDate||b.date||asOf));
+ for(const e of ordered){const effective=month(e.eventDate||e.date||asOf);if(effective>date)continue;
+ if(e.action==='removeBreak')breakDate=null;
+ if(e.action==='regear'||e.action==='renew'){const term=num(e.term??120,'lease term');if(!Number.isInteger(term)||term<1)throw Error('Invalid lease term');contractualExpiry=effective+term-1;breakDate=e.newBreakDate?month(e.newBreakDate):null;}
+ }
+ const securedTo=breakDate!==null&&contractualExpiry!==null?Math.min(breakDate,contractualExpiry):breakDate??contractualExpiry;
+ return {expiry:contractualExpiry===null?null:iso(contractualExpiry),breakDate:breakDate===null?null:iso(breakDate),securedMonths:securedTo===null?null:Math.max(0,securedTo-date+1)};
+}
+const api={leaseEvents,assetCashflow,unitValuations,leaseSecurity};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AssetStrategyLeaseEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
