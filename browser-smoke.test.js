@@ -25,6 +25,14 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="options"]').click();
   assert.ok((await page.locator('#options').innerText()).includes('Scenario builder'));
+  assert.equal(await page.locator('[data-exit-mode]').count(),Object.keys(await page.evaluate(()=>state.options)).length,'Every scenario needs an exit valuation selector');
+  const first=page.locator('[data-exit-mode]').first();await first.selectOption('manual');
+  await page.locator('[data-exit-value]').first().fill('80000000');
+  await page.locator('[data-exit-rationale]').first().fill('Indicative buyer proposal, subject to due diligence');
+  const check=await page.evaluate(()=>{const id=Object.keys(state.options)[0];return {mode:state.options[id].exitValueMode,value:state.options[id].manualExitValue,rationale:state.options[id].exitValueRationale,errors:validate()}});
+  assert.equal(check.mode,'manual');assert.equal(check.value,80000000);assert.ok(check.rationale.includes('buyer proposal'));
+  assert.ok(!check.errors.some(x=>x.includes('manual exit value')),'Valid override should pass input checks');
+  await first.selectOption('aggregate');
   const before=await page.locator('[data-strategy-card]').count();
   await page.locator('[data-duplicate]').first().click();
   assert.equal(await page.locator('[data-strategy-card]').count(),before+1,'Scenario duplication failed');
