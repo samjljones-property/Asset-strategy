@@ -4,7 +4,7 @@
 function adapt(model,id){
  const scenario=model.scenarios.find(s=>s.id===id);
  if(!scenario)throw Error('Unknown scenario');
- const tenancies=model.asset.units.map(u=>{const l=model.asset.leases.find(x=>x.unitId===u.id)||{};return {id:u.id,unit:u.name,occupier:l.tenant||'Vacant',rent:l.passingRent||0,erv:l.erv||0,commencement:l.commencement||'',expiry:l.expiry||'',breakDate:l.breakDates?.[0]||''}});return {scenario,asset:model.asset,tenancies};
+ const tenancies=model.asset.units.map(u=>{const l=model.asset.leases.find(x=>x.unitId===u.id)||{};return {id:u.id,unit:u.name,occupier:l.tenant||'Vacant',rent:l.passingRent||0,erv:l.erv||0,commencement:l.commencement||'',expiry:l.expiry||'',breakDate:l.breakDates?.[0]||''}});const actionMap={hold:'hold',regear:'regear',rentReview:'review',removeBreak:'removeBreak',relet:'relet',renew:'renew',surrender:'surrender'};const interventions={};model.asset.units.forEach((u,i)=>{interventions[i]=(scenario.unitPlans?.[u.id]?.actions||[]).map(a=>{const type=actionMap[a.type];if(!type)throw Error('Unsupported action '+a.type);const p=a.parameters||{};if(type!=='hold'&&!a.effectiveDate)throw Error('Action date required');const rent=Number(p.rent??0);if(['regear','relet','review','renew'].includes(type)&&p.rent==null)throw Error('Proposed rent required');const fee=rent*Number(p.lettingFeePct??0)/100;const cost=Number(p.cost??0)+Number(p.legalFees??0)+Number(p.refurbCost??0)+fee;if(!Number.isFinite(cost)||cost<0)throw Error('Invalid costs');return {action:type,eventDate:a.effectiveDate,rent,term:p.term??120,free:p.free??0,void:p.void??0,refurb:p.refurbMonths??0,cost}})});return {scenario,asset:model.asset,tenancies,interventions};
 }
 const api={adapt};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
