@@ -25,7 +25,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="options"]').click();
-  assert.ok((await page.locator('#options h2').first().innerText()).includes('Scenarios'));
+  assert.ok((await page.locator('#options .section-intro h2').innerText()).includes('Scenarios'));
   const before=await page.locator('[data-strategy-card]').count();
   await page.locator('#scenario-advanced summary').click();
   await page.locator('[data-duplicate]').first().click();
