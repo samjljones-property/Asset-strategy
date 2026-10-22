@@ -40,7 +40,7 @@ function leaseEvents(tenancy,events=[],start,horizon){
     continue;
    }
    if(m<leaseStart){rent[i]=0;vacant[i]=1;incentive[i]=0;continue}
-   const elapsed=m-leaseStart,active=elapsed<term;
+   const elapsed=m-leaseStart,active=elapsed<term&&!(kind==='surrender'&&newRent===0);
    rent[i]=active&&elapsed>=free?newRent/12:0;
    vacant[i]=active?0:1;
    incentive[i]=active&&elapsed<free?1:0;
