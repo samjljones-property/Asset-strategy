@@ -27,7 +27,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('.tab[data-tab="options"]').click();
   assert.ok((await page.locator('#options .section-intro h2').innerText()).includes('Scenarios'));
   const before=await page.locator('[data-strategy-card]').count();
-  await page.locator('#scenario-advanced summary').click();
+  await page.locator('#scenario-advanced > summary').click();
   await page.locator('[data-duplicate]').first().click();
   assert.equal(await page.locator('[data-strategy-card]').count(),before+1,'Scenario duplication failed');
   const isolation=await page.evaluate(()=>{const ids=Object.keys(state.options);const source=ids[0],copy=ids[ids.length-1];const original=JSON.stringify(state.interventions?.[source]||{});state.interventions[copy]=state.interventions[copy]||{};state.interventions[copy][0]=[{action:'review',eventDate:'2028-01-01',rent:999999}];return JSON.stringify(state.interventions?.[source]||{})===original});
