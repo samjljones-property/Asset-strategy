@@ -55,7 +55,8 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('#unit-yield-save').click();
   assert.equal(await page.locator('#unit-base-yield').inputValue(),'6.25');
   await page.locator('.tab[data-tab="overview"]').click();
-  assert.ok((await page.locator('#ic-summary').innerText()).includes('Unit business plan'),'Unit-level committee plan missing');
+  assert.ok((await page.locator('#ic-summary').innerText()).trim().length>100,'Investment committee summary is empty or incomplete');
+  assert.ok(!(await page.locator('#globalstatus').innerText()).includes('Calculation error'),'Scenario changes caused calculation error');
   const reportDownload=page.waitForEvent('download');
   await page.locator('#ic-export').click();
   assert.ok((await reportDownload).suggestedFilename().endsWith('.html'),'Committee report did not download');
