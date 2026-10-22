@@ -55,7 +55,8 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('#unit-yield-save').click();
   assert.equal(await page.locator('#unit-base-yield').inputValue(),'6.25');
   await page.locator('.tab[data-tab="overview"]').click();
-  assert.ok((await page.locator('#ic-summary').innerText()).trim().length>100,'Investment committee summary is empty or incomplete');
+  const reportText=(await page.locator('#ic-summary').innerText()).trim();
+  if(reportText.length<=100){const diagnosis=await page.evaluate(()=>({validation:validate(),status:document.getElementById('globalstatus')?.textContent,messages:document.getElementById('messages')?.textContent,scenarioIds:Object.keys(state.options),report:document.getElementById('ic-summary')?.textContent}));throw new Error('Committee report incomplete: '+JSON.stringify({reportText,diagnosis,errors}));}
   assert.ok(!(await page.locator('#globalstatus').innerText()).includes('Calculation error'),'Scenario changes caused calculation error');
   const reportDownload=page.waitForEvent('download');
   await page.locator('#ic-export').click();
