@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const {analyse,npv}=require('./capital-engine.js');
+const rows=[{net:-30000000},{net:1750000,rent:1750000,cost:0},{net:31750000,rent:1750000,cost:0,exit:30000000}];
+const a=analyse({rows,loan:15000000,annualInterestRate:0.055,arrangementFeeRate:0.01});
+assert.equal(a.debt.monthlyInterest,68750);
+assert.equal(a.debt.bulletRepayment,15000000);
+assert.equal(a.equity.initialEquity,15150000);
+assert.equal(a.debt.exitRepaymentHeadroom,15000000);
+assert.equal(a.equity.cashflows[2],16681250);
+assert.ok(a.equity.npv<0);
+assert.equal(a.debt.exitLtv,0.5);
+assert.equal(a.debt.exitRepaymentCovered,true);
+const noDebt=analyse({rows});
+assert.deepEqual(noDebt.equity.cashflows,rows.map(x=>x.net));
+assert.equal(noDebt.property.irr,noDebt.equity.irr);
+assert.throws(()=>analyse({rows,loan:31000000}));
+console.log('Capital engine tests passed');
