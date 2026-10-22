@@ -32,6 +32,14 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.equal(await page.locator('[data-strategy-card]').count(),before+1,'Scenario duplication failed');
   const isolation=await page.evaluate(()=>{const ids=Object.keys(state.options);const source=ids[0],copy=ids[ids.length-1];const original=JSON.stringify(state.interventions?.[source]||{});state.interventions[copy]=state.interventions[copy]||{};state.interventions[copy][0]=[{action:'review',eventDate:'2028-01-01',rent:999999}];return JSON.stringify(state.interventions?.[source]||{})===original});
   assert.ok(isolation,'Duplicated scenario changed original unit actions');
+  const persisted=await page.evaluate(()=>{const ids=Object.keys(state.options),copy=ids[ids.length-1];state.vpProgrammes=state.vpProgrammes||{};state.vpProgrammes[copy]={possession:{0:{method:'surrender',date:'2028-01-01'}},worksMonths:3,refurbishmentCost:125000,annualEmptyRates:24000};persist();return {copy,count:ids.length}});
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('[data-strategy-card]').count(),persisted.count,'Scenario count not restored on reload');
+  const restored=await page.evaluate(copy=>({vp:state.vpProgrammes?.[copy],name:state.options?.[copy]?.name}),persisted.copy);
+  assert.equal(restored.vp?.refurbishmentCost,125000,'VP refurbishment budget not persisted');
+  assert.equal(restored.vp?.possession?.[0]?.date,'2028-01-01','VP possession date not persisted');
+  assert.ok(restored.name,'Duplicated scenario name lost on reload');
+
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
   assert.ok((await page.locator('#scenario-context').innerText()).includes('Editing'),'Scenario context is not visible');
