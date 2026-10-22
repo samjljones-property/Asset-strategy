@@ -52,6 +52,20 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
 
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
+  // A unit action entered under one scenario must not leak into another.
+  const scoped=await page.evaluate(()=>{
+    const ids=Object.keys(state.options),unit='0';
+    const before=JSON.stringify(state.interventions?.[ids[1]]?.[unit]||[]);
+    state.interventions[ids[0]]=state.interventions[ids[0]]||{};
+    const prior=state.interventions[ids[0]][unit];
+    state.interventions[ids[0]][unit]=[{action:'review',eventDate:'2028-01-01',rent:987654}];
+    const isolated=JSON.stringify(state.interventions?.[ids[1]]?.[unit]||[])===before;
+    if(prior===undefined)delete state.interventions[ids[0]][unit];else state.interventions[ids[0]][unit]=prior;
+    return isolated;
+  });
+  assert.ok(scoped,'Unit assumptions leaked between scenarios');
+  assert.equal(await page.locator('#scenario-unit-matrix tbody tr').count(),7,'Scenario unit matrix must show every unit');
+
   assert.ok((await page.locator('#scenario-context').innerText()).includes('Editing'),'Scenario context is not visible');
   await page.locator('#scenario-compare').click();
   assert.ok(await page.locator('#overview').evaluate(el=>el.classList.contains('active')),'Scenario comparison navigation failed');
