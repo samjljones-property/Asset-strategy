@@ -12,14 +12,18 @@ on:
       - 'lease-engine.js'
       - 'browser-smoke.test.js'
       - '.github/workflows/browser-smoke.yml'
+concurrency:
+  group: browser-smoke-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   browser-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --no-save playwright
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps --only-shell chromium
       - run: node browser-smoke.test.js
