@@ -25,13 +25,13 @@ assert.equal(scenario.rows[0].net,-20000000);
 assert.ok(scenario.rows.slice(1).reduce((s,r)=>s+r.rent,0)<baseline.rows.slice(1).reduce((s,r)=>s+r.rent,0));
 
 // Independent dated post-works letting check: 1 July 2030, six months rent-free,
-// then £720,000 pa, with £36,000 letting costs charged in the first following month.
+// then £720,000 pa, with £36,000 letting costs charged in the letting commencement month.
 const reletEvents={0:[...interventions[0],{action:'relet',eventDate:'2030-07-01',date:'2030-07-01',override:true,rent:720000,term:120,free:6,void:0,refurb:0,cost:36000}]};
 const relet=lease.assetCashflow({tenancies,interventions:reletEvents,start,months:60,assetValue:20000000,exitYield:6});
 assert.equal(relet.lines[0].rent[42],0,'First post-works month is rent free');
 assert.equal(relet.lines[0].incentive[42],1,'Incentive flagged in commencement month');
 assert.equal(relet.lines[0].rent[48],60000,'New rent starts after six free months');
-assert.equal(relet.lines[0].cost[43],36000,'Letting fees charged to dated cash flow');
+assert.equal(relet.lines[0].cost[42],36000,'Letting fees charged to dated cash flow');
 assert.equal(relet.metrics.exitRent,720000,'Exit income reflects new lease');
 for(const row of relet.rows.slice(1))assert.ok(Math.abs(row.net-(row.rent-row.cost+row.exit))<.001,'Reletting cashflow reconciles');
 console.log('PASS: staggered possession, surrender rent cessation, contractual baseline isolation, VP costs and monthly reconciliation');
