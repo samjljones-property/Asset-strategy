@@ -39,6 +39,16 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.equal(restored.vp?.refurbishmentCost,125000,'VP refurbishment budget not persisted');
   assert.equal(restored.vp?.possession?.[0]?.date,'2028-01-01','VP possession date not persisted');
   assert.ok(restored.name,'Duplicated scenario name lost on reload');
+  // Persistence checks deliberately insert synthetic events and a VP plan.
+  // Remove those fixtures before validating investment outputs: a dated review
+  // without an actual lease agreement is not a commercially valid business plan.
+  await page.evaluate(copy=>{
+    delete state.interventions[copy][0];
+    delete state.vpProgrammes[copy];
+    persist();render();
+  },persisted.copy);
+  assert.deepEqual(await page.evaluate(()=>validate()),[],'Demo should be valid after synthetic persistence fixtures are removed');
+
 
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
