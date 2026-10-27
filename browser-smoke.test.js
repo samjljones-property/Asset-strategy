@@ -24,7 +24,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#loaddemo').evaluate(el=>el.click());
   await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
-  const csvRoundTrip=await page.evaluate(()=>{const before=JSON.stringify(state.tenancies),csv=[['unit','occupier','area','rent','erv','commencement','expiry','breakDate','reviewDate'].join(','),'Test Suite,Example Occupier,1000,50000,60000,2026-01-01,2031-01-01,,'].join('\\n');const n=importTenancyCSV(csv);const imported=state.tenancies.at(-1);state.tenancies=JSON.parse(before);buildForms();render();return {count:n,unit:imported?.unit,occupier:imported?.occupier,rent:imported?.rent,restored:JSON.stringify(state.tenancies)===before}});
+  const csvRoundTrip=await page.evaluate(()=>{const before=JSON.stringify(state.tenancies),csv=[['unit','occupier','area','rent','erv','commencement','expiry','breakDate','reviewDate'].join(','),'Test Suite,Example Occupier,1000,50000,60000,2026-01-01,2031-01-01,,'].join('\n');const n=importTenancyCSV(csv);const imported=state.tenancies.at(-1);state.tenancies=JSON.parse(before);buildForms();render();return {count:n,unit:imported?.unit,occupier:imported?.occupier,rent:imported?.rent,restored:JSON.stringify(state.tenancies)===before}});
   assert.equal(csvRoundTrip.count,1,'CSV import must load one row');
   assert.equal(csvRoundTrip.unit,'Test Suite');
   assert.equal(csvRoundTrip.occupier,'Example Occupier');
