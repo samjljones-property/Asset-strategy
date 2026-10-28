@@ -22,7 +22,9 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   }
   await page.locator('.tab[data-tab="dashboard"]').click();
   page.once('dialog',dialog=>dialog.accept());
-  await page.locator('#loaddemo').evaluate(el=>el.click());
+  await page.locator('details.workspace-details summary').click();
+  await page.locator('#loaddemo').click();
+
   await page.waitForFunction(()=>document.querySelector('#dash-asset')?.textContent?.includes('Seven-unit'));
   const csvRoundTrip=await page.evaluate(()=>{const before=JSON.stringify(state.tenancies),csv=[['unit','occupier','area','rent','erv','commencement','expiry','breakDate','reviewDate'].join(','),'Test Suite,Example Occupier,1000,50000,60000,2026-01-01,2031-01-01,,'].join('\n');const n=importTenancyCSV(csv);const imported=state.tenancies.at(-1);state.tenancies=JSON.parse(before);buildForms();render();return {count:n,unit:imported?.unit,occupier:imported?.occupier,rent:imported?.rent,restored:JSON.stringify(state.tenancies)===before}});
   assert.equal(csvRoundTrip.count,1,'CSV import must load one row');
@@ -41,10 +43,12 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   await page.locator('.tab[data-tab="overview"]').click();
   assert.equal(await page.locator('#ic-summary').count(),1,'Investment committee summary missing');
   await page.locator('.tab[data-tab="options"]').click();
-  assert.ok((await page.locator('#options').innerText()).includes('Scenario builder'));
+  assert.ok((await page.locator('#options .section-intro h2').innerText()).includes('Scenarios'));
+  await page.locator('#scenario-advanced > summary').click();
   assert.equal(await page.locator('[data-exit-mode]').count(),Object.keys(await page.evaluate(()=>state.options)).length,'Every scenario needs an exit valuation selector');
   const first=page.locator('[data-exit-mode]').first();await first.selectOption('manual');
   await page.locator('[data-exit-value]').first().fill('80000000');
+  assert.ok((await page.evaluate(()=>validate())).some(x=>x.includes('manual exit value')),'Manual override without rationale must fail validation');
   await page.locator('[data-exit-rationale]').first().fill('Indicative buyer proposal, subject to due diligence');
   const check=await page.evaluate(()=>{const id=Object.keys(state.options)[0];return {mode:state.options[id].exitValueMode,value:state.options[id].manualExitValue,rationale:state.options[id].exitValueRationale,errors:validate()}});
   assert.equal(check.mode,'manual');assert.equal(check.value,80000000);assert.ok(check.rationale.includes('buyer proposal'));
@@ -57,13 +61,46 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   assert.ok(reconciled.report.includes('Exit valuation reconciliation'),'Committee report must disclose exit valuation basis');
   assert.ok(reconciled.report.includes('Indicative buyer proposal'),'Committee report must disclose override rationale');
   await first.selectOption('aggregate');
+
   const before=await page.locator('[data-strategy-card]').count();
   await page.locator('[data-duplicate]').first().click();
   assert.equal(await page.locator('[data-strategy-card]').count(),before+1,'Scenario duplication failed');
   const isolation=await page.evaluate(()=>{const ids=Object.keys(state.options);const source=ids[0],copy=ids[ids.length-1];const original=JSON.stringify(state.interventions?.[source]||{});state.interventions[copy]=state.interventions[copy]||{};state.interventions[copy][0]=[{action:'review',eventDate:'2028-01-01',rent:999999}];return JSON.stringify(state.interventions?.[source]||{})===original});
   assert.ok(isolation,'Duplicated scenario changed original unit actions');
+  const persisted=await page.evaluate(()=>{const ids=Object.keys(state.options),copy=ids[ids.length-1];state.vpProgrammes=state.vpProgrammes||{};state.vpProgrammes[copy]={possession:{0:{method:'surrender',date:'2028-01-01'}},worksMonths:3,refurbishmentCost:125000,annualEmptyRates:24000};persist();return {copy,count:ids.length}});
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('[data-strategy-card]').count(),persisted.count,'Scenario count not restored on reload');
+  const restored=await page.evaluate(copy=>({vp:state.vpProgrammes?.[copy],name:state.options?.[copy]?.name}),persisted.copy);
+  assert.equal(restored.vp?.refurbishmentCost,125000,'VP refurbishment budget not persisted');
+  assert.equal(restored.vp?.possession?.[0]?.date,'2028-01-01','VP possession date not persisted');
+  assert.ok(restored.name,'Duplicated scenario name lost on reload');
+  // Persistence checks deliberately insert synthetic events and a VP plan.
+  // Remove those fixtures before validating investment outputs: a dated review
+  // without an actual lease agreement is not a commercially valid business plan.
+  await page.evaluate(copy=>{
+    delete state.interventions[copy][0];
+    delete state.vpProgrammes[copy];
+    persist();render();
+  },persisted.copy);
+  assert.deepEqual(await page.evaluate(()=>validate()),[],'Demo should be valid after synthetic persistence fixtures are removed');
+
+
   await page.locator('.tab[data-tab="tenancies"]').click();
   assert.equal(await page.locator('#unit-target option').count(),7,'Demonstration must contain seven units');
+  // A unit action entered under one scenario must not leak into another.
+  const scoped=await page.evaluate(()=>{
+    const ids=Object.keys(state.options),unit='0';
+    const before=JSON.stringify(state.interventions?.[ids[1]]?.[unit]||[]);
+    state.interventions[ids[0]]=state.interventions[ids[0]]||{};
+    const prior=state.interventions[ids[0]][unit];
+    state.interventions[ids[0]][unit]=[{action:'review',eventDate:'2028-01-01',rent:987654}];
+    const isolated=JSON.stringify(state.interventions?.[ids[1]]?.[unit]||[])===before;
+    if(prior===undefined)delete state.interventions[ids[0]][unit];else state.interventions[ids[0]][unit]=prior;
+    return isolated;
+  });
+  assert.ok(scoped,'Unit assumptions leaked between scenarios');
+  assert.equal(await page.locator('#scenario-unit-matrix tbody tr').count(),7,'Scenario unit matrix must show every unit');
+
   assert.ok((await page.locator('#scenario-context').innerText()).includes('Editing'),'Scenario context is not visible');
   await page.locator('#scenario-compare').click();
   assert.ok(await page.locator('#overview').evaluate(el=>el.classList.contains('active')),'Scenario comparison navigation failed');
@@ -84,7 +121,9 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
   const restoredDraft=await page.evaluate(()=>JSON.parse(JSON.stringify({options:state.options,tenancies:state.tenancies,interventions:state.interventions,unitYields:state.unitYields,marketShifts:state.marketShifts})));
   assert.deepEqual(restoredDraft,savedDraft,'Seven-unit scenario assumptions must survive a browser reload');
   await page.locator('.tab[data-tab="overview"]').click();
-  assert.ok((await page.locator('#ic-summary').innerText()).includes('Unit business plan'),'Unit-level committee plan missing');
+  const reportText=(await page.locator('#ic-summary').innerText()).trim();
+  if(reportText.length<=100){const diagnosis=await page.evaluate(()=>({validation:validate(),status:document.getElementById('globalstatus')?.textContent,messages:document.getElementById('messages')?.textContent,scenarioIds:Object.keys(state.options),report:document.getElementById('ic-summary')?.textContent}));throw new Error('Committee report incomplete: '+JSON.stringify({reportText,diagnosis,errors}));}
+  assert.ok(!(await page.locator('#globalstatus').innerText()).includes('Calculation error'),'Scenario changes caused calculation error');
   const reportDownload=page.waitForEvent('download');
   await page.locator('#ic-export').click();
   assert.ok((await reportDownload).suggestedFilename().endsWith('.html'),'Committee report did not download');

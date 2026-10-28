@@ -4,6 +4,8 @@ on:
     paths:
       - 'lease-engine.js'
       - 'lease-engine.test.js'
+      - 'vp-programme.js'
+      - 'vp-integration.test.js'
       - '.github/workflows/lease-tests.yml'
   pull_request:
     paths:
@@ -19,4 +21,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run lease and valuation regression tests
-        run: node lease-engine.test.js
+        run: node lease-engine.test.js && node vp-integration.test.js

@@ -12,6 +12,9 @@ jobs:
         with:
           node-version: '22'
       - run: node lease-engine.test.js
+      - run: node vp-integration.test.js
+      - run: node vp-programme.test.js
+      - run: node capital-engine.test.js
       - run: node --check browser-smoke.test.js
       - run: |
           python3 - <<'PY'
@@ -22,5 +25,5 @@ jobs:
           print('Legacy interface and override controls present')
           PY
       - run: npm install --no-save playwright
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps --only-shell chromium
       - run: node browser-smoke.test.js
