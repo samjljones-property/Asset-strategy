@@ -1,0 +1,29 @@
+name: Full-app regression validation
+on:
+  push:
+    branches: [feature/restore-full-app-valuation-controls]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node lease-engine.test.js
+      - run: node vp-integration.test.js
+      - run: node vp-programme.test.js
+      - run: node capital-engine.test.js
+      - run: node --check browser-smoke.test.js
+      - run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          for text in ['id="cashrows"','id="optionforms"','id="exportcsv"','id="ic-export"','id="financeenabled"','data-exit-mode','data-exit-value','data-exit-rationale','exitReconciliation']:
+              assert text in s, f'Missing feature {text}'
+          print('Legacy interface and override controls present')
+          PY
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: node browser-smoke.test.js
